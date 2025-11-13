@@ -15,12 +15,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourname/n8n-nodes-newscatcher-catchall-pernode.git"
+    "url": "git+https://github.com/Newscatcher/n8n-nodes-newscatcher-catchall-pernode.git"
   },
   "bugs": {
-    "url": "https://github.com/yourname/n8n-nodes-newscatcher-catchall-pernode/issues"
+    "url": "https://github.com/Newscatcher/n8n-nodes-newscatcher-catchall-pernode/issues"
   },
-  "homepage": "https://github.com/yourname/n8n-nodes-newscatcher-catchall-pernode#readme",
+  "homepage": "https://github.com/Newscatcher/n8n-nodes-newscatcher-catchall-pernode#readme",
   "engines": {
     "node": ">=18.0.0"
   },
