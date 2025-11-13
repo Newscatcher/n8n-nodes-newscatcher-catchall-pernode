@@ -1,0 +1,44 @@
+{
+  "name": "n8n-nodes-newscatcher-catchall-pernode",
+  "version": "0.1.12",
+  "description": "n8n community node for Newscatcher CatchAll (submit/pull/status) with per-node API key only.",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "newscatcher",
+    "catchall"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Chintan",
+    "email": "chintan@newscatcherapi.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourname/n8n-nodes-newscatcher-catchall-pernode.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourname/n8n-nodes-newscatcher-catchall-pernode/issues"
+  },
+  "homepage": "https://github.com/yourname/n8n-nodes-newscatcher-catchall-pernode#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.130",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "n8n": {
+    "nodes": [
+      "dist/nodes/Newscatcher/Newscatcher.node.js"
+    ]
+  }
+}
