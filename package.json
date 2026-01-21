@@ -1,7 +1,7 @@
 {
   "name": "n8n-nodes-newscatcher-catchall-pernode",
-  "version": "0.1.12",
-  "description": "n8n community node for Newscatcher CatchAll (submit/pull/status) with per-node API key only.",
+  "version": "0.1.32",
+  "description": "n8n community node for Newscatcher CatchAll API - submit jobs, retrieve results, manage monitors, and receive webhook triggers.",
   "keywords": [
     "n8n-community-node-package",
     "n8n",
@@ -27,6 +27,7 @@
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build",
+    "lint": "npx @n8n/scan-community-package n8n-nodes-newscatcher-catchall-pernode",
     "test": "echo \"No tests specified\" && exit 0"
   },
   "devDependencies": {
@@ -38,7 +39,8 @@
   },
   "n8n": {
     "nodes": [
-      "dist/nodes/Newscatcher/Newscatcher.node.js"
+      "dist/nodes/Newscatcher/Newscatcher.node.js",
+      "dist/nodes/Newscatcher/NewscatcherCatchAllTrigger.node.js"
     ]
   }
 }
