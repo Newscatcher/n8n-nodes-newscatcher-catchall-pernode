@@ -6,7 +6,7 @@ import type {
 	INodeTypeDescription,
 	IHttpRequestOptions,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
 export class Newscatcher implements INodeType {
 	description: INodeTypeDescription = {
@@ -22,21 +22,13 @@ export class Newscatcher implements INodeType {
 		subtitle: '={{$parameter["resource"]}}: {{$parameter["operation"]}}',
 		inputs: ['main'],
 		outputs: ['main'],
-		properties: [
-			// ----------------------------------------------------
-			// Auth
-			// ----------------------------------------------------
+		credentials: [
 			{
-				displayName: 'API Key',
-				name: 'apiKey',
-				type: 'string',
-				typeOptions: { password: true },
-				default: '',
-				placeholder: 'nc_live_xxx...',
-				description: 'Your Newscatcher API key (sent as x-api-key header)',
+				name: 'newscatcherApi',
 				required: true,
 			},
-
+		],
+		properties: [
 			// ----------------------------------------------------
 			// Resource selector
 			// ----------------------------------------------------
@@ -335,41 +327,21 @@ export class Newscatcher implements INodeType {
 		const returnData: INodeExecutionData[] = [];
 
 		// Shared helper to avoid circular JSON issues on errors
-		const doRequest = async (options: IHttpRequestOptions) => {
+		const doRequest = async (options: IHttpRequestOptions, itemIndex: number) => {
 			try {
 				return await this.helpers.httpRequest(options);
 			} catch (error) {
-				const err = error as IDataObject & {
-					response?: { data?: unknown; status?: number };
-					message?: string;
-				};
-
-				const apiBody = err.response?.data;
-				const apiStatus = err.response?.status;
-
-				let message = 'Newscatcher API error';
-
-				if (apiStatus) {
-					message += ` (status ${apiStatus})`;
-				}
-
-				if (apiBody) {
-					try {
-						message += `: ${JSON.stringify(apiBody)}`;
-					} catch {
-						message += `: ${String(apiBody)}`;
-					}
-				} else if (err.message) {
-					message += `: ${err.message}`;
-				}
-
-				throw new Error(message);
+				// NodeApiError expects error response data as JsonObject
+				// Pass the original error - NodeApiError will extract response details
+				// Using type assertion to work around strict JsonObject type requirement
+				throw new NodeApiError(this.getNode(), error as any, { itemIndex });
 			}
 		};
 
 		for (let i = 0; i < items.length; i++) {
 			try {
-				const apiKey = this.getNodeParameter('apiKey', i) as string;
+				const credentials = await this.getCredentials('newscatcherApi');
+				const apiKey = credentials.apiKey as string;
 				const resource = this.getNodeParameter('resource', i) as string;
 				const operation = this.getNodeParameter('operation', i) as string;
 
@@ -395,7 +367,7 @@ export class Newscatcher implements INodeType {
 					json: true,
 				};
 
-					responseData = (await doRequest(options)) as IDataObject;
+					responseData = (await doRequest(options, i)) as IDataObject;
 				} else if (resource === 'job' && operation === 'pull') {
 					// ------------------------------------------------
 					// Pull job results
@@ -409,7 +381,7 @@ export class Newscatcher implements INodeType {
 						json: true,
 					};
 
-					responseData = (await doRequest(options)) as IDataObject;
+					responseData = (await doRequest(options, i)) as IDataObject;
 				} else if (resource === 'job' && operation === 'status') {
 					// ------------------------------------------------
 					// Job status
@@ -423,7 +395,7 @@ export class Newscatcher implements INodeType {
 						json: true,
 					};
 
-					responseData = (await doRequest(options)) as IDataObject;
+					responseData = (await doRequest(options, i)) as IDataObject;
 				} else if (resource === 'monitor' && operation === 'create') {
 				// ------------------------------------------------
 				// Create monitor
@@ -447,7 +419,11 @@ export class Newscatcher implements INodeType {
 					try {
 						webhook.headers = JSON.parse(webhookHeadersRaw);
 					} catch (error) {
-						throw new Error(`Invalid JSON for Webhook Headers: ${(error as Error).message}`);
+						throw new NodeOperationError(
+							this.getNode(),
+							`Invalid JSON for Webhook Headers: ${(error as Error).message}`,
+							{ itemIndex: i },
+						);
 					}
 				}
 
@@ -455,7 +431,11 @@ export class Newscatcher implements INodeType {
 					try {
 						webhook.params = JSON.parse(webhookParamsRaw);
 					} catch (error) {
-						throw new Error(`Invalid JSON for Webhook Params: ${(error as Error).message}`);
+						throw new NodeOperationError(
+							this.getNode(),
+							`Invalid JSON for Webhook Params: ${(error as Error).message}`,
+							{ itemIndex: i },
+						);
 					}
 				}
 
@@ -463,11 +443,19 @@ export class Newscatcher implements INodeType {
 					try {
 						const parsedAuth = JSON.parse(webhookAuthRaw);
 						if (!Array.isArray(parsedAuth)) {
-							throw new Error('Webhook Auth must be a JSON array');
+							throw new NodeOperationError(
+								this.getNode(),
+								'Webhook Auth must be a JSON array',
+								{ itemIndex: i },
+							);
 						}
 						webhook.auth = parsedAuth;
 					} catch (error) {
-						throw new Error(`Invalid JSON for Webhook Auth: ${(error as Error).message}`);
+						throw new NodeOperationError(
+							this.getNode(),
+							`Invalid JSON for Webhook Auth: ${(error as Error).message}`,
+							{ itemIndex: i },
+						);
 					}
 				}
 
@@ -488,7 +476,7 @@ export class Newscatcher implements INodeType {
 					json: true,
 				};
 
-					responseData = (await doRequest(options)) as IDataObject;
+					responseData = (await doRequest(options, i)) as IDataObject;
 				} else if (resource === 'monitor' && operation === 'list') {
 					// ------------------------------------------------
 					// List monitors
@@ -500,7 +488,7 @@ export class Newscatcher implements INodeType {
 						json: true,
 					};
 
-					responseData = (await doRequest(options)) as IDataObject;
+					responseData = (await doRequest(options, i)) as IDataObject;
 				} else if (resource === 'monitor' && operation === 'listJobs') {
 					// ------------------------------------------------
 					// List monitor jobs
@@ -514,7 +502,7 @@ export class Newscatcher implements INodeType {
 						json: true,
 					};
 
-					responseData = (await doRequest(options)) as IDataObject[];
+					responseData = (await doRequest(options, i)) as IDataObject[];
 				} else if (resource === 'monitor' && operation === 'get') {
 					// ------------------------------------------------
 					// Get monitor details
@@ -528,7 +516,7 @@ export class Newscatcher implements INodeType {
 						json: true,
 					};
 
-					responseData = (await doRequest(options)) as IDataObject;
+					responseData = (await doRequest(options, i)) as IDataObject;
 				} else if (resource === 'monitor' && operation === 'enable') {
 					// ------------------------------------------------
 					// Enable monitor
@@ -542,7 +530,7 @@ export class Newscatcher implements INodeType {
 						json: true,
 					};
 
-					responseData = (await doRequest(options)) as IDataObject;
+					responseData = (await doRequest(options, i)) as IDataObject;
 				} else if (resource === 'monitor' && operation === 'disable') {
 					// ------------------------------------------------
 					// Disable monitor
@@ -556,7 +544,7 @@ export class Newscatcher implements INodeType {
 						json: true,
 					};
 
-					responseData = (await doRequest(options)) as IDataObject;
+					responseData = (await doRequest(options, i)) as IDataObject;
 				} else {
 					throw new NodeOperationError(this.getNode(), `Unsupported resource/operation: ${resource}/${operation}`, {
 						itemIndex: i,
