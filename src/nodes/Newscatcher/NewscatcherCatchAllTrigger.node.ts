@@ -37,17 +37,14 @@ export class NewscatcherCatchAllTrigger implements INodeType {
 			},
 		],
 
-		properties: [
+		credentials: [
 			{
-				displayName: 'API Key',
-				name: 'apiKey',
-				type: 'string',
-				typeOptions: { password: true },
-				default: '',
-				placeholder: 'nc_live_xxx...',
-				description: 'Your Newscatcher API key (sent as x-api-key header)',
+				name: 'newscatcherApi',
 				required: true,
 			},
+		],
+
+		properties: [
 			{
 				displayName: 'Monitor',
 				name: 'monitorId',
@@ -68,7 +65,8 @@ export class NewscatcherCatchAllTrigger implements INodeType {
 			// Populate the "Monitor" dropdown from the API
 			async getMonitors(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				try {
-					const apiKey = this.getNodeParameter('apiKey', 0) as string;
+					const credentials = await this.getCredentials('newscatcherApi');
+					const apiKey = credentials.apiKey as string;
 
 					if (!apiKey || apiKey.trim() === '') {
 						throw new Error('API Key is required to load monitors');
@@ -126,7 +124,8 @@ export class NewscatcherCatchAllTrigger implements INodeType {
 			// Workflow gets activated → register webhook on the monitor
 			async create(this: IHookFunctions): Promise<boolean> {
 				try {
-					const apiKey = this.getNodeParameter('apiKey', 0) as string;
+					const credentials = await this.getCredentials('newscatcherApi');
+					const apiKey = credentials.apiKey as string;
 					const monitorId = this.getNodeParameter('monitorId', 0) as string;
 					const baseUrl = 'https://catchall.newscatcherapi.com';
 
@@ -189,7 +188,8 @@ export class NewscatcherCatchAllTrigger implements INodeType {
 			// Workflow gets deactivated → restore or clear webhook on the monitor
 			async delete(this: IHookFunctions): Promise<boolean> {
 				try {
-					const apiKey = this.getNodeParameter('apiKey', 0) as string;
+					const credentials = await this.getCredentials('newscatcherApi');
+					const apiKey = credentials.apiKey as string;
 					const monitorId = this.getNodeParameter('monitorId', 0) as string;
 					const baseUrl = 'https://catchall.newscatcherapi.com';
 

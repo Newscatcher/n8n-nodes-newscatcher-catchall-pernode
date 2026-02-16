@@ -26,17 +26,13 @@ class NewscatcherCatchAllTrigger {
                 path: 'catchall-monitor',
             },
         ],
-        properties: [
+        credentials: [
             {
-                displayName: 'API Key',
-                name: 'apiKey',
-                type: 'string',
-                typeOptions: { password: true },
-                default: '',
-                placeholder: 'nc_live_xxx...',
-                description: 'Your Newscatcher API key (sent as x-api-key header)',
+                name: 'newscatcherApi',
                 required: true,
             },
+        ],
+        properties: [
             {
                 displayName: 'Monitor',
                 name: 'monitorId',
@@ -56,7 +52,8 @@ class NewscatcherCatchAllTrigger {
             // Populate the "Monitor" dropdown from the API
             async getMonitors() {
                 try {
-                    const apiKey = this.getNodeParameter('apiKey', 0);
+                    const credentials = await this.getCredentials('newscatcherApi');
+                    const apiKey = credentials.apiKey;
                     if (!apiKey || apiKey.trim() === '') {
                         throw new Error('API Key is required to load monitors');
                     }
@@ -104,7 +101,8 @@ class NewscatcherCatchAllTrigger {
             // Workflow gets activated → register webhook on the monitor
             async create() {
                 try {
-                    const apiKey = this.getNodeParameter('apiKey', 0);
+                    const credentials = await this.getCredentials('newscatcherApi');
+                    const apiKey = credentials.apiKey;
                     const monitorId = this.getNodeParameter('monitorId', 0);
                     const baseUrl = 'https://catchall.newscatcherapi.com';
                     if (!apiKey || apiKey.trim() === '') {
@@ -158,7 +156,8 @@ class NewscatcherCatchAllTrigger {
             // Workflow gets deactivated → restore or clear webhook on the monitor
             async delete() {
                 try {
-                    const apiKey = this.getNodeParameter('apiKey', 0);
+                    const credentials = await this.getCredentials('newscatcherApi');
+                    const apiKey = credentials.apiKey;
                     const monitorId = this.getNodeParameter('monitorId', 0);
                     const baseUrl = 'https://catchall.newscatcherapi.com';
                     if (!apiKey || apiKey.trim() === '') {

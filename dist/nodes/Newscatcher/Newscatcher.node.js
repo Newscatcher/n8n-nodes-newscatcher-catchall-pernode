@@ -16,20 +16,13 @@ class Newscatcher {
         subtitle: '={{$parameter["resource"]}}: {{$parameter["operation"]}}',
         inputs: ['main'],
         outputs: ['main'],
-        properties: [
-            // ----------------------------------------------------
-            // Auth
-            // ----------------------------------------------------
+        credentials: [
             {
-                displayName: 'API Key',
-                name: 'apiKey',
-                type: 'string',
-                typeOptions: { password: true },
-                default: '',
-                placeholder: 'nc_live_xxx...',
-                description: 'Your Newscatcher API key (sent as x-api-key header)',
+                name: 'newscatcherApi',
                 required: true,
             },
+        ],
+        properties: [
             // ----------------------------------------------------
             // Resource selector
             // ----------------------------------------------------
@@ -321,35 +314,21 @@ class Newscatcher {
         const items = this.getInputData();
         const returnData = [];
         // Shared helper to avoid circular JSON issues on errors
-        const doRequest = async (options) => {
+        const doRequest = async (options, itemIndex) => {
             try {
                 return await this.helpers.httpRequest(options);
             }
             catch (error) {
-                const err = error;
-                const apiBody = err.response?.data;
-                const apiStatus = err.response?.status;
-                let message = 'Newscatcher API error';
-                if (apiStatus) {
-                    message += ` (status ${apiStatus})`;
-                }
-                if (apiBody) {
-                    try {
-                        message += `: ${JSON.stringify(apiBody)}`;
-                    }
-                    catch {
-                        message += `: ${String(apiBody)}`;
-                    }
-                }
-                else if (err.message) {
-                    message += `: ${err.message}`;
-                }
-                throw new Error(message);
+                // NodeApiError expects error response data as JsonObject
+                // Pass the original error - NodeApiError will extract response details
+                // Using type assertion to work around strict JsonObject type requirement
+                throw new n8n_workflow_1.NodeApiError(this.getNode(), error, { itemIndex });
             }
         };
         for (let i = 0; i < items.length; i++) {
             try {
-                const apiKey = this.getNodeParameter('apiKey', i);
+                const credentials = await this.getCredentials('newscatcherApi');
+                const apiKey = credentials.apiKey;
                 const resource = this.getNodeParameter('resource', i);
                 const operation = this.getNodeParameter('operation', i);
                 const baseUrl = 'https://catchall.newscatcherapi.com';
@@ -370,7 +349,7 @@ class Newscatcher {
                         headers,
                         json: true,
                     };
-                    responseData = (await doRequest(options));
+                    responseData = (await doRequest(options, i));
                 }
                 else if (resource === 'job' && operation === 'pull') {
                     // ------------------------------------------------
@@ -383,7 +362,7 @@ class Newscatcher {
                         headers,
                         json: true,
                     };
-                    responseData = (await doRequest(options));
+                    responseData = (await doRequest(options, i));
                 }
                 else if (resource === 'job' && operation === 'status') {
                     // ------------------------------------------------
@@ -396,7 +375,7 @@ class Newscatcher {
                         headers,
                         json: true,
                     };
-                    responseData = (await doRequest(options));
+                    responseData = (await doRequest(options, i));
                 }
                 else if (resource === 'monitor' && operation === 'create') {
                     // ------------------------------------------------
@@ -419,7 +398,7 @@ class Newscatcher {
                             webhook.headers = JSON.parse(webhookHeadersRaw);
                         }
                         catch (error) {
-                            throw new Error(`Invalid JSON for Webhook Headers: ${error.message}`);
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Invalid JSON for Webhook Headers: ${error.message}`, { itemIndex: i });
                         }
                     }
                     if (webhookParamsRaw) {
@@ -427,19 +406,19 @@ class Newscatcher {
                             webhook.params = JSON.parse(webhookParamsRaw);
                         }
                         catch (error) {
-                            throw new Error(`Invalid JSON for Webhook Params: ${error.message}`);
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Invalid JSON for Webhook Params: ${error.message}`, { itemIndex: i });
                         }
                     }
                     if (webhookAuthRaw) {
                         try {
                             const parsedAuth = JSON.parse(webhookAuthRaw);
                             if (!Array.isArray(parsedAuth)) {
-                                throw new Error('Webhook Auth must be a JSON array');
+                                throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Webhook Auth must be a JSON array', { itemIndex: i });
                             }
                             webhook.auth = parsedAuth;
                         }
                         catch (error) {
-                            throw new Error(`Invalid JSON for Webhook Auth: ${error.message}`);
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Invalid JSON for Webhook Auth: ${error.message}`, { itemIndex: i });
                         }
                     }
                     const body = {
@@ -457,7 +436,7 @@ class Newscatcher {
                         },
                         json: true,
                     };
-                    responseData = (await doRequest(options));
+                    responseData = (await doRequest(options, i));
                 }
                 else if (resource === 'monitor' && operation === 'list') {
                     // ------------------------------------------------
@@ -469,7 +448,7 @@ class Newscatcher {
                         headers,
                         json: true,
                     };
-                    responseData = (await doRequest(options));
+                    responseData = (await doRequest(options, i));
                 }
                 else if (resource === 'monitor' && operation === 'listJobs') {
                     // ------------------------------------------------
@@ -482,7 +461,7 @@ class Newscatcher {
                         headers,
                         json: true,
                     };
-                    responseData = (await doRequest(options));
+                    responseData = (await doRequest(options, i));
                 }
                 else if (resource === 'monitor' && operation === 'get') {
                     // ------------------------------------------------
@@ -495,7 +474,7 @@ class Newscatcher {
                         headers,
                         json: true,
                     };
-                    responseData = (await doRequest(options));
+                    responseData = (await doRequest(options, i));
                 }
                 else if (resource === 'monitor' && operation === 'enable') {
                     // ------------------------------------------------
@@ -508,7 +487,7 @@ class Newscatcher {
                         headers,
                         json: true,
                     };
-                    responseData = (await doRequest(options));
+                    responseData = (await doRequest(options, i));
                 }
                 else if (resource === 'monitor' && operation === 'disable') {
                     // ------------------------------------------------
@@ -521,7 +500,7 @@ class Newscatcher {
                         headers,
                         json: true,
                     };
-                    responseData = (await doRequest(options));
+                    responseData = (await doRequest(options, i));
                 }
                 else {
                     throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Unsupported resource/operation: ${resource}/${operation}`, {
