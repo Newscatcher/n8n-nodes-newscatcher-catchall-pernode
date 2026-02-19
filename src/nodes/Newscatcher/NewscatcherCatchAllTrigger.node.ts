@@ -9,13 +9,13 @@ import type {
 	IWebhookFunctions,
 	IWebhookResponseData,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeOperationError, NodeConnectionTypes } from 'n8n-workflow';
 
 export class NewscatcherCatchAllTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Newscatcher CatchAll Trigger',
 		name: 'newscatcherCatchAllTrigger',
-		icon: 'file:newscatcher-new.png',
+		icon: 'file:newscatcher-new.svg',
 		group: ['trigger'],
 		version: 1,
 		description: 'Triggers when a Newscatcher CatchAll monitor has new results',
@@ -24,7 +24,7 @@ export class NewscatcherCatchAllTrigger implements INodeType {
 		},
 		// Trigger: no inputs, only outputs
 		inputs: [],
-		outputs: ['main'],
+		outputs: [NodeConnectionTypes.Main],
 
 		// Webhook that Newscatcher will call with monitor results
 		webhooks: [
@@ -65,21 +65,17 @@ export class NewscatcherCatchAllTrigger implements INodeType {
 			// Populate the "Monitor" dropdown from the API
 			async getMonitors(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				try {
-					const credentials = await this.getCredentials('newscatcherApi');
-					const apiKey = credentials.apiKey as string;
-
-					if (!apiKey || apiKey.trim() === '') {
-						throw new Error('API Key is required to load monitors');
-					}
-
 					const options: IHttpRequestOptions = {
 						method: 'GET',
 						url: 'https://catchall.newscatcherapi.com/catchAll/monitors',
-						headers: { 'x-api-key': apiKey },
 						json: true,
 					};
 
-					const response = (await this.helpers.httpRequest(options)) as IDataObject;
+					const response = (await this.helpers.httpRequestWithAuthentication.call(
+						this,
+						'newscatcherApi',
+						options,
+					)) as IDataObject;
 
 					// Adjust `response.monitors` if your API responds differently
 					const monitors = (response.monitors ?? response) as IDataObject[];
@@ -124,14 +120,8 @@ export class NewscatcherCatchAllTrigger implements INodeType {
 			// Workflow gets activated → register webhook on the monitor
 			async create(this: IHookFunctions): Promise<boolean> {
 				try {
-					const credentials = await this.getCredentials('newscatcherApi');
-					const apiKey = credentials.apiKey as string;
 					const monitorId = this.getNodeParameter('monitorId', 0) as string;
 					const baseUrl = 'https://catchall.newscatcherapi.com';
-
-					if (!apiKey || apiKey.trim() === '') {
-						throw new Error('API Key is required');
-					}
 
 					if (!monitorId || monitorId.trim() === '') {
 						throw new Error('Monitor ID is required');
@@ -147,11 +137,14 @@ export class NewscatcherCatchAllTrigger implements INodeType {
 						const getOptions: IHttpRequestOptions = {
 							method: 'GET',
 							url: `${baseUrl}/catchAll/monitors/pull/${encodeURIComponent(monitorId)}`,
-							headers: { 'x-api-key': apiKey },
 							json: true,
 						};
 
-						const monitor = (await this.helpers.httpRequest(getOptions)) as IDataObject;
+						const monitor = (await this.helpers.httpRequestWithAuthentication.call(
+							this,
+							'newscatcherApi',
+							getOptions,
+						)) as IDataObject;
 						staticData.oldWebhook = monitor.webhook;
 					} catch {
 						// If this fails, we just won't restore anything later
@@ -167,17 +160,16 @@ export class NewscatcherCatchAllTrigger implements INodeType {
 					};
 
 					const patchOptions: IHttpRequestOptions = {
-						method: 'PATCH', // Adjust to your real method if different
+						method: 'PATCH',
 						url: `${baseUrl}/catchAll/monitors/${encodeURIComponent(monitorId)}`,
 						headers: {
-							'x-api-key': apiKey,
 							'Content-Type': 'application/json',
 						},
 						body: patchBody,
 						json: true,
 					};
 
-					await this.helpers.httpRequest(patchOptions);
+					await this.helpers.httpRequestWithAuthentication.call(this, 'newscatcherApi', patchOptions);
 
 					return true;
 				} catch (error) {
@@ -188,14 +180,8 @@ export class NewscatcherCatchAllTrigger implements INodeType {
 			// Workflow gets deactivated → restore or clear webhook on the monitor
 			async delete(this: IHookFunctions): Promise<boolean> {
 				try {
-					const credentials = await this.getCredentials('newscatcherApi');
-					const apiKey = credentials.apiKey as string;
 					const monitorId = this.getNodeParameter('monitorId', 0) as string;
 					const baseUrl = 'https://catchall.newscatcherapi.com';
-
-					if (!apiKey || apiKey.trim() === '') {
-						throw new Error('API Key is required');
-					}
 
 					if (!monitorId || monitorId.trim() === '') {
 						throw new Error('Monitor ID is required');
@@ -215,17 +201,16 @@ export class NewscatcherCatchAllTrigger implements INodeType {
 					}
 
 					const patchOptions: IHttpRequestOptions = {
-						method: 'PATCH', // Adjust to your real method if different
+						method: 'PATCH',
 						url: `${baseUrl}/catchAll/monitors/${encodeURIComponent(monitorId)}`,
 						headers: {
-							'x-api-key': apiKey,
 							'Content-Type': 'application/json',
 						},
 						body,
 						json: true,
 					};
 
-					await this.helpers.httpRequest(patchOptions);
+					await this.helpers.httpRequestWithAuthentication.call(this, 'newscatcherApi', patchOptions);
 
 					return true;
 				} catch (error) {

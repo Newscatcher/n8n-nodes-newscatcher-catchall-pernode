@@ -1,4 +1,9 @@
-import type { ICredentialType, INodeProperties } from 'n8n-workflow';
+import type {
+	IAuthenticateGeneric,
+	ICredentialTestRequest,
+	ICredentialType,
+	INodeProperties,
+} from 'n8n-workflow';
 
 export class NewscatcherApi implements ICredentialType {
 	name = 'newscatcherApi';
@@ -21,4 +26,21 @@ export class NewscatcherApi implements ICredentialType {
 			required: true,
 		},
 	];
+
+	authenticate: IAuthenticateGeneric = {
+		type: 'generic',
+		properties: {
+			headers: {
+				'x-api-key': '={{$credentials.apiKey}}',
+			},
+		},
+	};
+
+	test: ICredentialTestRequest = {
+		request: {
+			baseURL: 'https://catchall.newscatcherapi.com',
+			url: '/catchAll/monitors',
+			method: 'GET',
+		},
+	};
 }

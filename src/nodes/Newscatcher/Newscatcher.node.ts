@@ -6,13 +6,13 @@ import type {
 	INodeTypeDescription,
 	IHttpRequestOptions,
 } from 'n8n-workflow';
-import { NodeApiError, NodeOperationError } from 'n8n-workflow';
+import { NodeApiError, NodeOperationError, NodeConnectionTypes } from 'n8n-workflow';
 
 export class Newscatcher implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Newscatcher CatchAll',
 		name: 'newscatcher',
-		icon: 'file:newscatcher-new.png',
+		icon: 'file:newscatcher-new.svg',
 		group: ['transform'],
 		version: 1,
 		description: 'Submit and pull CatchAll jobs from Newscatcher',
@@ -20,8 +20,8 @@ export class Newscatcher implements INodeType {
 			name: 'Newscatcher CatchAll',
 		},
 		subtitle: '={{$parameter["resource"]}}: {{$parameter["operation"]}}',
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionTypes.Main],
+		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
 				name: 'newscatcherApi',
@@ -329,7 +329,7 @@ export class Newscatcher implements INodeType {
 		// Shared helper to avoid circular JSON issues on errors
 		const doRequest = async (options: IHttpRequestOptions, itemIndex: number) => {
 			try {
-				return await this.helpers.httpRequest(options);
+				return await this.helpers.httpRequestWithAuthentication.call(this, 'newscatcherApi', options);
 			} catch (error) {
 				// NodeApiError expects error response data as JsonObject
 				// Pass the original error - NodeApiError will extract response details
@@ -340,15 +340,11 @@ export class Newscatcher implements INodeType {
 
 		for (let i = 0; i < items.length; i++) {
 			try {
-				const credentials = await this.getCredentials('newscatcherApi');
-				const apiKey = credentials.apiKey as string;
 				const resource = this.getNodeParameter('resource', i) as string;
 				const operation = this.getNodeParameter('operation', i) as string;
 
 				const baseUrl = 'https://catchall.newscatcherapi.com';
 				let responseData: IDataObject | IDataObject[] | string = {};
-
-				const headers: IDataObject = { 'x-api-key': apiKey };
 
 				// Job resource operations
 				if (resource === 'job' && operation === 'submit') {
@@ -363,7 +359,6 @@ export class Newscatcher implements INodeType {
 					method: 'POST',
 					url: `${baseUrl}/catchAll/submit`,
 					body: { query, context, schema },
-					headers,
 					json: true,
 				};
 
@@ -377,7 +372,6 @@ export class Newscatcher implements INodeType {
 					const options: IHttpRequestOptions = {
 						method: 'GET',
 						url: `${baseUrl}/catchAll/pull/${encodeURIComponent(jobId)}`,
-						headers,
 						json: true,
 					};
 
@@ -391,7 +385,6 @@ export class Newscatcher implements INodeType {
 					const options: IHttpRequestOptions = {
 						method: 'GET',
 						url: `${baseUrl}/catchAll/status/${encodeURIComponent(jobId)}`,
-						headers,
 						json: true,
 					};
 
@@ -470,7 +463,6 @@ export class Newscatcher implements INodeType {
 					url: `${baseUrl}/catchAll/monitors/create`,
 					body,
 					headers: {
-						...headers,
 						'Content-Type': 'application/json',
 					},
 					json: true,
@@ -484,7 +476,6 @@ export class Newscatcher implements INodeType {
 					const options: IHttpRequestOptions = {
 						method: 'GET',
 						url: `${baseUrl}/catchAll/monitors`,
-						headers,
 						json: true,
 					};
 
@@ -498,7 +489,6 @@ export class Newscatcher implements INodeType {
 					const options: IHttpRequestOptions = {
 						method: 'GET',
 						url: `${baseUrl}/catchAll/monitors/${encodeURIComponent(monitorId)}/jobs`,
-						headers,
 						json: true,
 					};
 
@@ -512,7 +502,6 @@ export class Newscatcher implements INodeType {
 					const options: IHttpRequestOptions = {
 						method: 'GET',
 						url: `${baseUrl}/catchAll/monitors/pull/${encodeURIComponent(monitorId)}`,
-						headers,
 						json: true,
 					};
 
@@ -526,7 +515,6 @@ export class Newscatcher implements INodeType {
 					const options: IHttpRequestOptions = {
 						method: 'POST',
 						url: `${baseUrl}/catchAll/monitors/${encodeURIComponent(monitorId)}/enable`,
-						headers,
 						json: true,
 					};
 
@@ -540,7 +528,6 @@ export class Newscatcher implements INodeType {
 					const options: IHttpRequestOptions = {
 						method: 'POST',
 						url: `${baseUrl}/catchAll/monitors/${encodeURIComponent(monitorId)}/disable`,
-						headers,
 						json: true,
 					};
 
