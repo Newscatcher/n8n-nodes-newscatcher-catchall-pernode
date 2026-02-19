@@ -19,5 +19,20 @@ class NewscatcherApi {
             required: true,
         },
     ];
+    authenticate = {
+        type: 'generic',
+        properties: {
+            headers: {
+                'x-api-key': '={{$credentials.apiKey}}',
+            },
+        },
+    };
+    test = {
+        request: {
+            baseURL: 'https://catchall.newscatcherapi.com',
+            url: '/catchAll/monitors',
+            method: 'GET',
+        },
+    };
 }
 exports.NewscatcherApi = NewscatcherApi;

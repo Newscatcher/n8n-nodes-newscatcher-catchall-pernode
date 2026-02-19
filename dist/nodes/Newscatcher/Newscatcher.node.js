@@ -6,7 +6,7 @@ class Newscatcher {
     description = {
         displayName: 'Newscatcher CatchAll',
         name: 'newscatcher',
-        icon: 'file:newscatcher-new.png',
+        icon: 'file:newscatcher-new.svg',
         group: ['transform'],
         version: 1,
         description: 'Submit and pull CatchAll jobs from Newscatcher',
@@ -14,8 +14,8 @@ class Newscatcher {
             name: 'Newscatcher CatchAll',
         },
         subtitle: '={{$parameter["resource"]}}: {{$parameter["operation"]}}',
-        inputs: ['main'],
-        outputs: ['main'],
+        inputs: [n8n_workflow_1.NodeConnectionTypes.Main],
+        outputs: [n8n_workflow_1.NodeConnectionTypes.Main],
         credentials: [
             {
                 name: 'newscatcherApi',
@@ -316,7 +316,7 @@ class Newscatcher {
         // Shared helper to avoid circular JSON issues on errors
         const doRequest = async (options, itemIndex) => {
             try {
-                return await this.helpers.httpRequest(options);
+                return await this.helpers.httpRequestWithAuthentication.call(this, 'newscatcherApi', options);
             }
             catch (error) {
                 // NodeApiError expects error response data as JsonObject
@@ -327,13 +327,10 @@ class Newscatcher {
         };
         for (let i = 0; i < items.length; i++) {
             try {
-                const credentials = await this.getCredentials('newscatcherApi');
-                const apiKey = credentials.apiKey;
                 const resource = this.getNodeParameter('resource', i);
                 const operation = this.getNodeParameter('operation', i);
                 const baseUrl = 'https://catchall.newscatcherapi.com';
                 let responseData = {};
-                const headers = { 'x-api-key': apiKey };
                 // Job resource operations
                 if (resource === 'job' && operation === 'submit') {
                     // ------------------------------------------------
@@ -346,7 +343,6 @@ class Newscatcher {
                         method: 'POST',
                         url: `${baseUrl}/catchAll/submit`,
                         body: { query, context, schema },
-                        headers,
                         json: true,
                     };
                     responseData = (await doRequest(options, i));
@@ -359,7 +355,6 @@ class Newscatcher {
                     const options = {
                         method: 'GET',
                         url: `${baseUrl}/catchAll/pull/${encodeURIComponent(jobId)}`,
-                        headers,
                         json: true,
                     };
                     responseData = (await doRequest(options, i));
@@ -372,7 +367,6 @@ class Newscatcher {
                     const options = {
                         method: 'GET',
                         url: `${baseUrl}/catchAll/status/${encodeURIComponent(jobId)}`,
-                        headers,
                         json: true,
                     };
                     responseData = (await doRequest(options, i));
@@ -431,7 +425,6 @@ class Newscatcher {
                         url: `${baseUrl}/catchAll/monitors/create`,
                         body,
                         headers: {
-                            ...headers,
                             'Content-Type': 'application/json',
                         },
                         json: true,
@@ -445,7 +438,6 @@ class Newscatcher {
                     const options = {
                         method: 'GET',
                         url: `${baseUrl}/catchAll/monitors`,
-                        headers,
                         json: true,
                     };
                     responseData = (await doRequest(options, i));
@@ -458,7 +450,6 @@ class Newscatcher {
                     const options = {
                         method: 'GET',
                         url: `${baseUrl}/catchAll/monitors/${encodeURIComponent(monitorId)}/jobs`,
-                        headers,
                         json: true,
                     };
                     responseData = (await doRequest(options, i));
@@ -471,7 +462,6 @@ class Newscatcher {
                     const options = {
                         method: 'GET',
                         url: `${baseUrl}/catchAll/monitors/pull/${encodeURIComponent(monitorId)}`,
-                        headers,
                         json: true,
                     };
                     responseData = (await doRequest(options, i));
@@ -484,7 +474,6 @@ class Newscatcher {
                     const options = {
                         method: 'POST',
                         url: `${baseUrl}/catchAll/monitors/${encodeURIComponent(monitorId)}/enable`,
-                        headers,
                         json: true,
                     };
                     responseData = (await doRequest(options, i));
@@ -497,7 +486,6 @@ class Newscatcher {
                     const options = {
                         method: 'POST',
                         url: `${baseUrl}/catchAll/monitors/${encodeURIComponent(monitorId)}/disable`,
-                        headers,
                         json: true,
                     };
                     responseData = (await doRequest(options, i));
