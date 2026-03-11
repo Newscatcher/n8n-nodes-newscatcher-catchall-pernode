@@ -71,6 +71,12 @@ export class Newscatcher implements INodeType {
 						description: 'Create a job with query/context/schema',
 					},
 					{
+						name: 'Initialize',
+						value: 'initialize',
+						action: 'Initialize a job',
+						description: 'Initialize a job with query/context/schema',
+					},
+					{
 						name: 'Pull',
 						value: 'pull',
 						action: 'Pull job results',
@@ -81,6 +87,18 @@ export class Newscatcher implements INodeType {
 						value: 'status',
 						action: 'Check job status',
 						description: 'Get the status of a job by job_id',
+					},
+					{
+						name: 'List User Jobs',
+						value: 'listUserJobs',
+						action: 'List user jobs',
+						description: 'Returns all jobs created by the authenticated user',
+					},
+					{
+						name: 'Continue',
+						value: 'continue',
+						action: 'Continue a job',
+						description: 'Continue an existing job to process more records beyond the initial limit',
 					},
 				],
 				default: 'submit',
@@ -137,7 +155,7 @@ export class Newscatcher implements INodeType {
 			},
 
 			// ----------------------------------------------------
-			// Submit fields
+			// Submit / Initialize fields
 			// ----------------------------------------------------
 			{
 				displayName: 'Query',
@@ -147,7 +165,7 @@ export class Newscatcher implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['job'],
-						operation: ['submit'],
+						operation: ['submit', 'initialize'],
 					},
 				},
 				placeholder: 'Tech company earnings this quarter',
@@ -161,7 +179,7 @@ export class Newscatcher implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['job'],
-						operation: ['submit'],
+						operation: ['submit', 'initialize'],
 					},
 				},
 				placeholder: 'Focus on revenue and profit margins',
@@ -174,10 +192,84 @@ export class Newscatcher implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['job'],
-						operation: ['submit'],
+						operation: ['submit', 'initialize'],
 					},
 				},
 				placeholder: 'Company [NAME] earned [REVENUE] in [QUARTER]',
+			},
+			{
+				displayName: 'Limit',
+				name: 'limit',
+				type: 'number',
+				default: '',
+				displayOptions: {
+					show: {
+						resource: ['job'],
+						operation: ['submit', 'initialize'],
+					},
+				},
+				description: 'Maximum number of records to return. If not specified, defaults to your plan limit.',
+				typeOptions: {
+					minValue: 1,
+				},
+			},
+			{
+				displayName: 'Start Date',
+				name: 'startDate',
+				type: 'dateTime',
+				default: '',
+				displayOptions: {
+					show: {
+						resource: ['job'],
+						operation: ['submit', 'initialize'],
+					},
+				},
+				description: 'Start date for web search (ISO 8601 format with UTC timezone). Defines the start of the search window by web page discovery date.',
+			},
+			{
+				displayName: 'End Date',
+				name: 'endDate',
+				type: 'dateTime',
+				default: '',
+				displayOptions: {
+					show: {
+						resource: ['job'],
+						operation: ['submit', 'initialize'],
+					},
+				},
+				description: 'End date for web search (ISO 8601 format with UTC timezone). Defines the end of the search window by web page discovery date.',
+			},
+			{
+				displayName: 'Validators (JSON)',
+				name: 'validators',
+				type: 'string',
+				default: '',
+				displayOptions: {
+					show: {
+						resource: ['job'],
+						operation: ['submit', 'initialize'],
+					},
+				},
+				description:
+					'Custom validators for filtering web page clusters. JSON array of objects with name, description, and type (boolean). Example: [{"name": "is_acquisition_event", "description": "true if web page describes a merger or acquisition event", "type": "boolean"}]',
+				placeholder:
+					'[{"name": "is_acquisition_event", "description": "true if web page describes a merger or acquisition event", "type": "boolean"}]',
+			},
+			{
+				displayName: 'Enrichments (JSON)',
+				name: 'enrichments',
+				type: 'string',
+				default: '',
+				displayOptions: {
+					show: {
+						resource: ['job'],
+						operation: ['submit', 'initialize'],
+					},
+				},
+				description:
+					'Custom enrichment fields for data extraction. JSON array of objects with name, description, and type (text, number, date, option, url, dict, company). Example: [{"name": "acquiring_company", "description": "Extract the acquiring company name", "type": "text"}]',
+				placeholder:
+					'[{"name": "acquiring_company", "description": "Extract the acquiring company name", "type": "text"}]',
 			},
 
 			// ----------------------------------------------------
@@ -195,6 +287,79 @@ export class Newscatcher implements INodeType {
 					},
 				},
 				required: true,
+			},
+
+			// ----------------------------------------------------
+			// Continue fields
+			// ----------------------------------------------------
+			{
+				displayName: 'Job ID',
+				name: 'jobId',
+				type: 'string',
+				default: '',
+				displayOptions: {
+					show: {
+						resource: ['job'],
+						operation: ['continue'],
+					},
+				},
+				description: 'Job identifier of the completed job to continue',
+				placeholder: 'af7a26d6-cf0b-458c-a6ed-4b6318c74da3',
+				required: true,
+			},
+			{
+				displayName: 'New Limit',
+				name: 'newLimit',
+				type: 'number',
+				default: '',
+				displayOptions: {
+					show: {
+						resource: ['job'],
+						operation: ['continue'],
+					},
+				},
+				description: 'New record limit for continued processing. Must be greater than the previous limit.',
+				typeOptions: {
+					minValue: 1,
+				},
+				required: true,
+			},
+
+			// ----------------------------------------------------
+			// List User Jobs fields
+			// ----------------------------------------------------
+			{
+				displayName: 'Page',
+				name: 'page',
+				type: 'number',
+				default: 1,
+				displayOptions: {
+					show: {
+						resource: ['job'],
+						operation: ['listUserJobs'],
+					},
+				},
+				description: 'Page number to retrieve',
+				typeOptions: {
+					minValue: 1,
+				},
+			},
+			{
+				displayName: 'Page Size',
+				name: 'pageSize',
+				type: 'number',
+				default: 100,
+				displayOptions: {
+					show: {
+						resource: ['job'],
+						operation: ['listUserJobs'],
+					},
+				},
+				description: 'Number of records per page',
+				typeOptions: {
+					minValue: 1,
+					maxValue: 1000,
+				},
 			},
 
 			// ----------------------------------------------------
@@ -348,19 +513,141 @@ export class Newscatcher implements INodeType {
 
 				// Job resource operations
 				if (resource === 'job' && operation === 'submit') {
-				// ------------------------------------------------
-				// Submit job
-				// ------------------------------------------------
-				const query = this.getNodeParameter('query', i) as string;
-				const context = this.getNodeParameter('context', i) as string;
-				const schema = this.getNodeParameter('schema', i) as string;
+					// ------------------------------------------------
+					// Submit job
+					// ------------------------------------------------
+					const query = this.getNodeParameter('query', i) as string;
+					const context = this.getNodeParameter('context', i) as string;
+					const schema = this.getNodeParameter('schema', i) as string;
+					const limit = this.getNodeParameter('limit', i) as number | undefined;
+					const startDate = this.getNodeParameter('startDate', i) as string | undefined;
+					const endDate = this.getNodeParameter('endDate', i) as string | undefined;
+					const validatorsRaw = this.getNodeParameter('validators', i) as string | undefined;
+					const enrichmentsRaw = this.getNodeParameter('enrichments', i) as string | undefined;
 
-				const options: IHttpRequestOptions = {
-					method: 'POST',
-					url: `${baseUrl}/catchAll/submit`,
-					body: { query, context, schema },
-					json: true,
-				};
+					const body: IDataObject = {
+						query,
+					};
+
+					if (context) {
+						body.context = context;
+					}
+
+					if (schema) {
+						body.schema = schema;
+					}
+
+					if (limit) {
+						body.limit = limit;
+					}
+
+					if (startDate) {
+						body.start_date = startDate;
+					}
+
+					if (endDate) {
+						body.end_date = endDate;
+					}
+
+					if (validatorsRaw) {
+						try {
+							body.validators = JSON.parse(validatorsRaw);
+						} catch (error) {
+							throw new NodeOperationError(
+								this.getNode(),
+								`Invalid JSON for Validators: ${(error as Error).message}`,
+								{ itemIndex: i },
+							);
+						}
+					}
+
+					if (enrichmentsRaw) {
+						try {
+							body.enrichments = JSON.parse(enrichmentsRaw);
+						} catch (error) {
+							throw new NodeOperationError(
+								this.getNode(),
+								`Invalid JSON for Enrichments: ${(error as Error).message}`,
+								{ itemIndex: i },
+							);
+						}
+					}
+
+					const options: IHttpRequestOptions = {
+						method: 'POST',
+						url: `${baseUrl}/catchAll/submit`,
+						body,
+						json: true,
+					};
+
+					responseData = (await doRequest(options, i)) as IDataObject;
+				} else if (resource === 'job' && operation === 'initialize') {
+					// ------------------------------------------------
+					// Initialize job
+					// ------------------------------------------------
+					const query = this.getNodeParameter('query', i) as string;
+					const context = this.getNodeParameter('context', i) as string;
+					const schema = this.getNodeParameter('schema', i) as string;
+					const limit = this.getNodeParameter('limit', i) as number | undefined;
+					const startDate = this.getNodeParameter('startDate', i) as string | undefined;
+					const endDate = this.getNodeParameter('endDate', i) as string | undefined;
+					const validatorsRaw = this.getNodeParameter('validators', i) as string | undefined;
+					const enrichmentsRaw = this.getNodeParameter('enrichments', i) as string | undefined;
+
+					const body: IDataObject = {
+						query,
+					};
+
+					if (context) {
+						body.context = context;
+					}
+
+					if (schema) {
+						body.schema = schema;
+					}
+
+					if (limit) {
+						body.limit = limit;
+					}
+
+					if (startDate) {
+						body.start_date = startDate;
+					}
+
+					if (endDate) {
+						body.end_date = endDate;
+					}
+
+					if (validatorsRaw) {
+						try {
+							body.validators = JSON.parse(validatorsRaw);
+						} catch (error) {
+							throw new NodeOperationError(
+								this.getNode(),
+								`Invalid JSON for Validators: ${(error as Error).message}`,
+								{ itemIndex: i },
+							);
+						}
+					}
+
+					if (enrichmentsRaw) {
+						try {
+							body.enrichments = JSON.parse(enrichmentsRaw);
+						} catch (error) {
+							throw new NodeOperationError(
+								this.getNode(),
+								`Invalid JSON for Enrichments: ${(error as Error).message}`,
+								{ itemIndex: i },
+							);
+						}
+					}
+
+					const options: IHttpRequestOptions = {
+						method: 'POST',
+						url: `${baseUrl}/catchAll/initialize`,
+						body,
+						json: true,
+					};
 
 					responseData = (await doRequest(options, i)) as IDataObject;
 				} else if (resource === 'job' && operation === 'pull') {
@@ -385,6 +672,47 @@ export class Newscatcher implements INodeType {
 					const options: IHttpRequestOptions = {
 						method: 'GET',
 						url: `${baseUrl}/catchAll/status/${encodeURIComponent(jobId)}`,
+						json: true,
+					};
+
+					responseData = (await doRequest(options, i)) as IDataObject;
+				} else if (resource === 'job' && operation === 'listUserJobs') {
+					// ------------------------------------------------
+					// List user jobs
+					// ------------------------------------------------
+					const page = this.getNodeParameter('page', i) as number | undefined;
+					const pageSize = this.getNodeParameter('pageSize', i) as number | undefined;
+
+					const queryParams: IDataObject = {};
+					if (page) {
+						queryParams.page = page;
+					}
+					if (pageSize) {
+						queryParams.page_size = pageSize;
+					}
+
+					const options: IHttpRequestOptions = {
+						method: 'GET',
+						url: `${baseUrl}/catchAll/jobs/user`,
+						qs: queryParams,
+						json: true,
+					};
+
+					responseData = (await doRequest(options, i)) as IDataObject;
+				} else if (resource === 'job' && operation === 'continue') {
+					// ------------------------------------------------
+					// Continue job
+					// ------------------------------------------------
+					const jobId = this.getNodeParameter('jobId', i) as string;
+					const newLimit = this.getNodeParameter('newLimit', i) as number;
+
+					const options: IHttpRequestOptions = {
+						method: 'POST',
+						url: `${baseUrl}/catchAll/continue`,
+						body: {
+							job_id: jobId,
+							new_limit: newLimit,
+						},
 						json: true,
 					};
 
