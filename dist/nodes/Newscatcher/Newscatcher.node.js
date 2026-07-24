@@ -64,6 +64,12 @@ class Newscatcher {
                         description: 'Create a job with query/context/schema',
                     },
                     {
+                        name: 'Initialize',
+                        value: 'initialize',
+                        action: 'Initialize a job',
+                        description: 'Initialize a job with query/context/schema',
+                    },
+                    {
                         name: 'Pull',
                         value: 'pull',
                         action: 'Pull job results',
@@ -74,6 +80,18 @@ class Newscatcher {
                         value: 'status',
                         action: 'Check job status',
                         description: 'Get the status of a job by job_id',
+                    },
+                    {
+                        name: 'List User Jobs',
+                        value: 'listUserJobs',
+                        action: 'List user jobs',
+                        description: 'Returns all jobs created by the authenticated user',
+                    },
+                    {
+                        name: 'Continue',
+                        value: 'continue',
+                        action: 'Continue a job',
+                        description: 'Continue an existing job to process more records beyond the initial limit',
                     },
                 ],
                 default: 'submit',
@@ -129,7 +147,7 @@ class Newscatcher {
                 default: 'list',
             },
             // ----------------------------------------------------
-            // Submit fields
+            // Submit / Initialize fields
             // ----------------------------------------------------
             {
                 displayName: 'Query',
@@ -139,7 +157,7 @@ class Newscatcher {
                 displayOptions: {
                     show: {
                         resource: ['job'],
-                        operation: ['submit'],
+                        operation: ['submit', 'initialize'],
                     },
                 },
                 placeholder: 'Tech company earnings this quarter',
@@ -153,7 +171,7 @@ class Newscatcher {
                 displayOptions: {
                     show: {
                         resource: ['job'],
-                        operation: ['submit'],
+                        operation: ['submit', 'initialize'],
                     },
                 },
                 placeholder: 'Focus on revenue and profit margins',
@@ -166,10 +184,80 @@ class Newscatcher {
                 displayOptions: {
                     show: {
                         resource: ['job'],
-                        operation: ['submit'],
+                        operation: ['submit', 'initialize'],
                     },
                 },
                 placeholder: 'Company [NAME] earned [REVENUE] in [QUARTER]',
+            },
+            {
+                displayName: 'Limit',
+                name: 'limit',
+                type: 'number',
+                default: '',
+                displayOptions: {
+                    show: {
+                        resource: ['job'],
+                        operation: ['submit', 'initialize'],
+                    },
+                },
+                description: 'Maximum number of records to return. If not specified, defaults to your plan limit.',
+                typeOptions: {
+                    minValue: 1,
+                },
+            },
+            {
+                displayName: 'Start Date',
+                name: 'startDate',
+                type: 'dateTime',
+                default: '',
+                displayOptions: {
+                    show: {
+                        resource: ['job'],
+                        operation: ['submit', 'initialize'],
+                    },
+                },
+                description: 'Start date for web search (ISO 8601 format with UTC timezone). Defines the start of the search window by web page discovery date.',
+            },
+            {
+                displayName: 'End Date',
+                name: 'endDate',
+                type: 'dateTime',
+                default: '',
+                displayOptions: {
+                    show: {
+                        resource: ['job'],
+                        operation: ['submit', 'initialize'],
+                    },
+                },
+                description: 'End date for web search (ISO 8601 format with UTC timezone). Defines the end of the search window by web page discovery date.',
+            },
+            {
+                displayName: 'Validators (JSON)',
+                name: 'validators',
+                type: 'string',
+                default: '',
+                displayOptions: {
+                    show: {
+                        resource: ['job'],
+                        operation: ['submit', 'initialize'],
+                    },
+                },
+                description: 'Custom validators for filtering web page clusters. JSON array of objects with name, description, and type (boolean). Example: [{"name": "is_acquisition_event", "description": "true if web page describes a merger or acquisition event", "type": "boolean"}]',
+                placeholder: '[{"name": "is_acquisition_event", "description": "true if web page describes a merger or acquisition event", "type": "boolean"}]',
+            },
+            {
+                displayName: 'Enrichments (JSON)',
+                name: 'enrichments',
+                type: 'string',
+                default: '',
+                displayOptions: {
+                    show: {
+                        resource: ['job'],
+                        operation: ['submit', 'initialize'],
+                    },
+                },
+                description: 'Custom enrichment fields for data extraction. JSON array of objects with name, description, and type (text, number, date, option, url, dict, company). Example: [{"name": "acquiring_company", "description": "Extract the acquiring company name", "type": "text"}]',
+                placeholder: '[{"name": "acquiring_company", "description": "Extract the acquiring company name", "type": "text"}]',
             },
             // ----------------------------------------------------
             // Pull / Status fields
@@ -186,6 +274,77 @@ class Newscatcher {
                     },
                 },
                 required: true,
+            },
+            // ----------------------------------------------------
+            // Continue fields
+            // ----------------------------------------------------
+            {
+                displayName: 'Job ID',
+                name: 'jobId',
+                type: 'string',
+                default: '',
+                displayOptions: {
+                    show: {
+                        resource: ['job'],
+                        operation: ['continue'],
+                    },
+                },
+                description: 'Job identifier of the completed job to continue',
+                placeholder: 'af7a26d6-cf0b-458c-a6ed-4b6318c74da3',
+                required: true,
+            },
+            {
+                displayName: 'New Limit',
+                name: 'newLimit',
+                type: 'number',
+                default: '',
+                displayOptions: {
+                    show: {
+                        resource: ['job'],
+                        operation: ['continue'],
+                    },
+                },
+                description: 'New record limit for continued processing. Must be greater than the previous limit.',
+                typeOptions: {
+                    minValue: 1,
+                },
+                required: true,
+            },
+            // ----------------------------------------------------
+            // List User Jobs fields
+            // ----------------------------------------------------
+            {
+                displayName: 'Page',
+                name: 'page',
+                type: 'number',
+                default: 1,
+                displayOptions: {
+                    show: {
+                        resource: ['job'],
+                        operation: ['listUserJobs'],
+                    },
+                },
+                description: 'Page number to retrieve',
+                typeOptions: {
+                    minValue: 1,
+                },
+            },
+            {
+                displayName: 'Page Size',
+                name: 'pageSize',
+                type: 'number',
+                default: 100,
+                displayOptions: {
+                    show: {
+                        resource: ['job'],
+                        operation: ['listUserJobs'],
+                    },
+                },
+                description: 'Number of records per page',
+                typeOptions: {
+                    minValue: 1,
+                    maxValue: 1000,
+                },
             },
             // ----------------------------------------------------
             // Create Monitor fields
@@ -339,10 +498,103 @@ class Newscatcher {
                     const query = this.getNodeParameter('query', i);
                     const context = this.getNodeParameter('context', i);
                     const schema = this.getNodeParameter('schema', i);
+                    const limit = this.getNodeParameter('limit', i);
+                    const startDate = this.getNodeParameter('startDate', i);
+                    const endDate = this.getNodeParameter('endDate', i);
+                    const validatorsRaw = this.getNodeParameter('validators', i);
+                    const enrichmentsRaw = this.getNodeParameter('enrichments', i);
+                    const body = {
+                        query,
+                    };
+                    if (context) {
+                        body.context = context;
+                    }
+                    if (schema) {
+                        body.schema = schema;
+                    }
+                    if (limit) {
+                        body.limit = limit;
+                    }
+                    if (startDate) {
+                        body.start_date = startDate;
+                    }
+                    if (endDate) {
+                        body.end_date = endDate;
+                    }
+                    if (validatorsRaw) {
+                        try {
+                            body.validators = JSON.parse(validatorsRaw);
+                        }
+                        catch (error) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Invalid JSON for Validators: ${error.message}`, { itemIndex: i });
+                        }
+                    }
+                    if (enrichmentsRaw) {
+                        try {
+                            body.enrichments = JSON.parse(enrichmentsRaw);
+                        }
+                        catch (error) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Invalid JSON for Enrichments: ${error.message}`, { itemIndex: i });
+                        }
+                    }
                     const options = {
                         method: 'POST',
                         url: `${baseUrl}/catchAll/submit`,
-                        body: { query, context, schema },
+                        body,
+                        json: true,
+                    };
+                    responseData = (await doRequest(options, i));
+                }
+                else if (resource === 'job' && operation === 'initialize') {
+                    // ------------------------------------------------
+                    // Initialize job
+                    // ------------------------------------------------
+                    const query = this.getNodeParameter('query', i);
+                    const context = this.getNodeParameter('context', i);
+                    const schema = this.getNodeParameter('schema', i);
+                    const limit = this.getNodeParameter('limit', i);
+                    const startDate = this.getNodeParameter('startDate', i);
+                    const endDate = this.getNodeParameter('endDate', i);
+                    const validatorsRaw = this.getNodeParameter('validators', i);
+                    const enrichmentsRaw = this.getNodeParameter('enrichments', i);
+                    const body = {
+                        query,
+                    };
+                    if (context) {
+                        body.context = context;
+                    }
+                    if (schema) {
+                        body.schema = schema;
+                    }
+                    if (limit) {
+                        body.limit = limit;
+                    }
+                    if (startDate) {
+                        body.start_date = startDate;
+                    }
+                    if (endDate) {
+                        body.end_date = endDate;
+                    }
+                    if (validatorsRaw) {
+                        try {
+                            body.validators = JSON.parse(validatorsRaw);
+                        }
+                        catch (error) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Invalid JSON for Validators: ${error.message}`, { itemIndex: i });
+                        }
+                    }
+                    if (enrichmentsRaw) {
+                        try {
+                            body.enrichments = JSON.parse(enrichmentsRaw);
+                        }
+                        catch (error) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Invalid JSON for Enrichments: ${error.message}`, { itemIndex: i });
+                        }
+                    }
+                    const options = {
+                        method: 'POST',
+                        url: `${baseUrl}/catchAll/initialize`,
+                        body,
                         json: true,
                     };
                     responseData = (await doRequest(options, i));
@@ -367,6 +619,44 @@ class Newscatcher {
                     const options = {
                         method: 'GET',
                         url: `${baseUrl}/catchAll/status/${encodeURIComponent(jobId)}`,
+                        json: true,
+                    };
+                    responseData = (await doRequest(options, i));
+                }
+                else if (resource === 'job' && operation === 'listUserJobs') {
+                    // ------------------------------------------------
+                    // List user jobs
+                    // ------------------------------------------------
+                    const page = this.getNodeParameter('page', i);
+                    const pageSize = this.getNodeParameter('pageSize', i);
+                    const queryParams = {};
+                    if (page) {
+                        queryParams.page = page;
+                    }
+                    if (pageSize) {
+                        queryParams.page_size = pageSize;
+                    }
+                    const options = {
+                        method: 'GET',
+                        url: `${baseUrl}/catchAll/jobs/user`,
+                        qs: queryParams,
+                        json: true,
+                    };
+                    responseData = (await doRequest(options, i));
+                }
+                else if (resource === 'job' && operation === 'continue') {
+                    // ------------------------------------------------
+                    // Continue job
+                    // ------------------------------------------------
+                    const jobId = this.getNodeParameter('jobId', i);
+                    const newLimit = this.getNodeParameter('newLimit', i);
+                    const options = {
+                        method: 'POST',
+                        url: `${baseUrl}/catchAll/continue`,
+                        body: {
+                            job_id: jobId,
+                            new_limit: newLimit,
+                        },
                         json: true,
                     };
                     responseData = (await doRequest(options, i));
