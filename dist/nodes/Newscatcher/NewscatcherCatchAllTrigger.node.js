@@ -113,8 +113,12 @@ class NewscatcherCatchAllTrigger {
                         const monitor = (await this.helpers.httpRequestWithAuthentication.call(this, 'newscatcherApi', getOptions));
                         staticData.oldWebhook = monitor.webhook;
                     }
-                    catch {
-                        // If this fails, we just won't restore anything later
+                    catch (error) {
+                        // Non-fatal: without the old config we simply cannot restore it on delete().
+                        // Surface it in the node logs so activation problems stay debuggable.
+                        this.logger.warn('Could not fetch existing monitor webhook config:', {
+                            error: error instanceof Error ? error.message : String(error),
+                        });
                     }
                     // Update monitor to point its webhook to this n8n trigger
                     const patchBody = {
@@ -169,6 +173,8 @@ class NewscatcherCatchAllTrigger {
                         json: true,
                     };
                     await this.helpers.httpRequestWithAuthentication.call(this, 'newscatcherApi', patchOptions);
+                    // Drop the saved config — otherwise it is replayed on the next activation.
+                    delete staticData.oldWebhook;
                     return true;
                 }
                 catch (error) {
