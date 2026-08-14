@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "lib": [
+      "es2022",
+      "dom",
+      "es2022.error"
+    ],
+    "target": "es2022",
+    "module": "commonjs",
+    "declaration": false,
+    "noEmitOnError": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "types": [
+      "node"
+    ],
+    "typeRoots": [
+      "/Users/hadikoub/PycharmProjects/catchall-tests/Projects/CatchAll-AI-Integration-Pipeline/.sandboxes/n8n/node_modules/@types"
+    ]
+  },
+  "include": [
+    "src/**/*.ts"
+  ]
+}
