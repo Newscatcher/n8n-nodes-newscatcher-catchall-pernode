@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09-30 — 0.1.45
+
+- Added `n8n.n8nNodesApiVersion: 1` so the n8n community-node review can approve the update.
+
 ## 2026-08-12 — CatchAll API 1.7.0 sync
 
 - **Job > List User Jobs**: added an optional **Mode** filter (`base` | `lite`) that maps to

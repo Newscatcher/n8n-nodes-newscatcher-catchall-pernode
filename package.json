@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-newscatcher-catchall-pernode",
-  "version": "0.1.44",
+  "version": "0.1.45",
   "description": "n8n community node for Newscatcher CatchAll API - submit jobs, retrieve results, manage monitors, and receive webhook triggers.",
   "keywords": [
     "n8n-community-node-package",
@@ -41,6 +41,7 @@
     "n8n-workflow": "*"
   },
   "n8n": {
+    "n8nNodesApiVersion": 1,
     "nodes": [
       "dist/nodes/Newscatcher/Newscatcher.node.js",
       "dist/nodes/Newscatcher/NewscatcherCatchAllTrigger.node.js"
