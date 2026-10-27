@@ -5,7 +5,8 @@ n8n community node for [Newscatcher CatchAll](https://catchall.newscatcherapi.co
 ## Features
 
 - **Job Management**: Submit, initialize, pull results, check status, list jobs, and continue existing jobs
-- **Monitor Management**: Create, list, enable, disable monitors, and retrieve monitor details
+- **Monitor Management**: Create, list, update schedule and timezone, enable, disable monitors, and retrieve monitor details
+- **Source Groups**: List source groups and scope job submissions to them
 - **Project Management**: Create, list, update, delete projects, read project overviews, and attach or detach resources (jobs, monitors, datasets, monitor groups, webhooks)
 - **Webhook Management**: Create, list, get, update, and delete webhook endpoints, optionally attached to a project
 - **Webhook Trigger**: Real-time trigger node for monitor results
@@ -51,7 +52,7 @@ Main node for interacting with the Newscatcher CatchAll API.
 
 - **Submit**: Create a new CatchAll job with query, context, and schema
   - Required: `query`, `context`, `schema`
-  - Optional: `limit`, `startDate`, `endDate`, `validators`, `enrichments`
+  - Optional: `limit`, `startDate`, `endDate`, `validators`, `enrichments`, `sourceGroups` (comma-separated source group slugs, max 20, that scope fetching to their domain allowlists)
 - **Initialize**: Initialize a job with query, context, and schema (similar to Submit)
   - Required: `query`, `context`, `schema`
   - Optional: `limit`, `startDate`, `endDate`, `validators`, `enrichments`
@@ -72,6 +73,14 @@ Main node for interacting with the Newscatcher CatchAll API.
 - **List Jobs**: List all jobs created by a specific monitor
 - **Enable**: Enable a monitor by monitor ID
 - **Disable**: Disable a monitor by monitor ID
+- **Update**: Change the schedule and timezone of a monitor (only supplied fields are sent)
+  - Required: `monitorId`
+  - Optional: `schedule` (natural-language, e.g. `every day at 9 AM`), `timezone` (IANA name, e.g. `America/New_York`; defaults to UTC and is ignored when `schedule` is empty)
+
+**Source Group Resource**
+
+- **List**: List source groups (named domain allowlists) available to your organization with pagination. Each entry has `slug`, `name`, and `description`. Use a slug in the Job **Submit** `sourceGroups` field.
+  - Optional: `page`, `pageSize`
 
 **Project Resource**
 

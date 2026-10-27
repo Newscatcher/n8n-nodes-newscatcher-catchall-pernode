@@ -51,6 +51,10 @@ export class Newscatcher implements INodeType {
 						value: 'project',
 					},
 					{
+						name: 'Source Group',
+						value: 'sourceGroup',
+					},
+					{
 						name: 'Webhook',
 						value: 'webhook',
 					},
@@ -158,6 +162,12 @@ export class Newscatcher implements INodeType {
 						action: 'Disable a monitor',
 						description: 'Disable a monitor by monitor_id',
 					},
+					{
+						name: 'Update',
+						value: 'update',
+						action: 'Update a monitor',
+						description: 'Update the schedule and timezone of a monitor; only supplied fields are changed',
+					},
 				],
 				default: 'list',
 			},
@@ -219,6 +229,26 @@ export class Newscatcher implements INodeType {
 						value: 'delete',
 						action: 'Delete a project',
 						description: 'Delete a project, optionally deleting its resources too (webhooks are only detached, never deleted)',
+					},
+				],
+				default: 'list',
+			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['sourceGroup'],
+					},
+				},
+				options: [
+					{
+						name: 'List',
+						value: 'list',
+						action: 'List source groups',
+						description: 'List source groups (named domain allowlists) available to your organization',
 					},
 				],
 				default: 'list',
@@ -384,6 +414,22 @@ export class Newscatcher implements INodeType {
 					'Custom enrichment fields for data extraction. JSON array of objects with name, description, and type (text, number, date, option, url, dict, company). Example: [{"name": "acquiring_company", "description": "Extract the acquiring company name", "type": "text"}]',
 				placeholder:
 					'[{"name": "acquiring_company", "description": "Extract the acquiring company name", "type": "text"}]',
+			},
+
+			{
+				displayName: 'Source Groups',
+				name: 'sourceGroups',
+				type: 'string',
+				default: '',
+				displayOptions: {
+					show: {
+						resource: ['job'],
+						operation: ['submit'],
+					},
+				},
+				description:
+					'Optional comma-separated source group slugs (max 20) that scope fetching to their domain allowlists. Use Source Group > List to find slugs.',
+				placeholder: 'top_100_global_news, top_100_financial_news',
 			},
 
 			// ----------------------------------------------------
@@ -610,12 +656,41 @@ export class Newscatcher implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['monitor'],
-						operation: ['get', 'listJobs', 'enable', 'disable'],
+						operation: ['get', 'listJobs', 'enable', 'disable', 'update'],
 					},
 				},
 				placeholder: '7f3a8b2c-1e4d-4a5b-9c8d-6e7f8a9b0c1d',
-				description: 'Monitor ID for which to list jobs, pull details or change status',
+				description: 'Monitor ID for which to list jobs, pull details, change status or update',
 				required: true,
+			},
+			{
+				displayName: 'Schedule',
+				name: 'schedule',
+				type: 'string',
+				default: '',
+				displayOptions: {
+					show: {
+						resource: ['monitor'],
+						operation: ['update'],
+					},
+				},
+				description:
+					'New natural-language schedule that replaces the current one, e.g. "every day at 9 AM". Leave empty to keep the current schedule.',
+			},
+			{
+				displayName: 'Timezone',
+				name: 'timezone',
+				type: 'string',
+				default: '',
+				displayOptions: {
+					show: {
+						resource: ['monitor'],
+						operation: ['update'],
+					},
+				},
+				description:
+					'IANA timezone for the new schedule, e.g. "America/New_York" (API default is UTC). Ignored if Schedule is empty, and overridden if the schedule text contains a timezone.',
+				placeholder: 'America/New_York',
 			},
 
 			// ----------------------------------------------------
@@ -944,7 +1019,7 @@ export class Newscatcher implements INodeType {
 				default: 1,
 				displayOptions: {
 					show: {
-						resource: ['project', 'webhook'],
+						resource: ['project', 'webhook', 'sourceGroup'],
 						operation: ['list'],
 					},
 				},
@@ -960,7 +1035,7 @@ export class Newscatcher implements INodeType {
 				default: 100,
 				displayOptions: {
 					show: {
-						resource: ['project', 'webhook'],
+						resource: ['project', 'webhook', 'sourceGroup'],
 						operation: ['list'],
 					},
 				},
@@ -1070,6 +1145,22 @@ export class Newscatcher implements INodeType {
 								{ itemIndex: i },
 							);
 						}
+					}
+
+					// Optional source groups: comma-separated slugs (or an array), max 20
+					const sourceGroupsRaw = this.getNodeParameter('sourceGroups', i, '') as string | string[];
+					const sourceGroups = (
+						Array.isArray(sourceGroupsRaw) ? sourceGroupsRaw : String(sourceGroupsRaw || '').split(',')
+					)
+						.map((slug) => String(slug).trim())
+						.filter((slug) => slug.length > 0);
+					if (sourceGroups.length > 20) {
+						throw new NodeOperationError(this.getNode(), 'Source Groups accepts at most 20 slugs per job', {
+							itemIndex: i,
+						});
+					}
+					if (sourceGroups.length > 0) {
+						body.source_groups = sourceGroups;
 					}
 
 					const options: IHttpRequestOptions = {
@@ -1359,6 +1450,56 @@ export class Newscatcher implements INodeType {
 					const options: IHttpRequestOptions = {
 						method: 'POST',
 						url: `${baseUrl}/catchAll/monitors/${encodeURIComponent(monitorId)}/disable`,
+						json: true,
+					};
+
+					responseData = (await doRequest(options, i)) as IDataObject;
+				} else if (resource === 'monitor' && operation === 'update') {
+					// ------------------------------------------------
+					// Update monitor schedule / timezone (only supplied
+					// fields are sent; timezone is ignored by the API
+					// when schedule is not set)
+					// ------------------------------------------------
+					const monitorId = this.getNodeParameter('monitorId', i) as string;
+					const schedule = this.getNodeParameter('schedule', i, '') as string;
+					const timezone = this.getNodeParameter('timezone', i, '') as string;
+
+					const body: IDataObject = {};
+					if (schedule) {
+						body.schedule = schedule;
+					}
+					if (timezone) {
+						body.timezone = timezone;
+					}
+
+					const options: IHttpRequestOptions = {
+						method: 'PATCH',
+						url: `${baseUrl}/catchAll/monitors/${encodeURIComponent(monitorId)}`,
+						body,
+						json: true,
+					};
+
+					responseData = (await doRequest(options, i)) as IDataObject;
+				} else if (resource === 'sourceGroup' && operation === 'list') {
+					// ------------------------------------------------
+					// List source groups (paginated: source_groups
+					// [{slug, name, description}], total, page, page_size)
+					// ------------------------------------------------
+					const page = this.getNodeParameter('page', i) as number | undefined;
+					const pageSize = this.getNodeParameter('pageSize', i) as number | undefined;
+
+					const queryParams: IDataObject = {};
+					if (page) {
+						queryParams.page = page;
+					}
+					if (pageSize) {
+						queryParams.page_size = pageSize;
+					}
+
+					const options: IHttpRequestOptions = {
+						method: 'GET',
+						url: `${baseUrl}/catchAll/source-groups`,
+						qs: queryParams,
 						json: true,
 					};
 

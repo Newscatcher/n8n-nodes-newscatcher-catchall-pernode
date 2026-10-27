@@ -19,7 +19,7 @@
       "node"
     ],
     "typeRoots": [
-      "/Users/hadikoub/PycharmProjects/catchall-tests/Projects/CatchAll-AI-Integration-Pipeline/.sandboxes/n8n/node_modules/@types"
+      "/home/user/CatchAll-AI-Integrations/.sandboxes/n8n/node_modules/@types"
     ]
   },
   "include": [

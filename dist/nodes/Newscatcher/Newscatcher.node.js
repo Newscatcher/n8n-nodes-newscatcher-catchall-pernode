@@ -45,6 +45,10 @@ class Newscatcher {
                         value: 'project',
                     },
                     {
+                        name: 'Source Group',
+                        value: 'sourceGroup',
+                    },
+                    {
                         name: 'Webhook',
                         value: 'webhook',
                     },
@@ -151,6 +155,12 @@ class Newscatcher {
                         action: 'Disable a monitor',
                         description: 'Disable a monitor by monitor_id',
                     },
+                    {
+                        name: 'Update',
+                        value: 'update',
+                        action: 'Update a monitor',
+                        description: 'Update the schedule and timezone of a monitor; only supplied fields are changed',
+                    },
                 ],
                 default: 'list',
             },
@@ -212,6 +222,26 @@ class Newscatcher {
                         value: 'delete',
                         action: 'Delete a project',
                         description: 'Delete a project, optionally deleting its resources too (webhooks are only detached, never deleted)',
+                    },
+                ],
+                default: 'list',
+            },
+            {
+                displayName: 'Operation',
+                name: 'operation',
+                type: 'options',
+                noDataExpression: true,
+                displayOptions: {
+                    show: {
+                        resource: ['sourceGroup'],
+                    },
+                },
+                options: [
+                    {
+                        name: 'List',
+                        value: 'list',
+                        action: 'List source groups',
+                        description: 'List source groups (named domain allowlists) available to your organization',
                     },
                 ],
                 default: 'list',
@@ -372,6 +402,20 @@ class Newscatcher {
                 },
                 description: 'Custom enrichment fields for data extraction. JSON array of objects with name, description, and type (text, number, date, option, url, dict, company). Example: [{"name": "acquiring_company", "description": "Extract the acquiring company name", "type": "text"}]',
                 placeholder: '[{"name": "acquiring_company", "description": "Extract the acquiring company name", "type": "text"}]',
+            },
+            {
+                displayName: 'Source Groups',
+                name: 'sourceGroups',
+                type: 'string',
+                default: '',
+                displayOptions: {
+                    show: {
+                        resource: ['job'],
+                        operation: ['submit'],
+                    },
+                },
+                description: 'Optional comma-separated source group slugs (max 20) that scope fetching to their domain allowlists. Use Source Group > List to find slugs.',
+                placeholder: 'top_100_global_news, top_100_financial_news',
             },
             // ----------------------------------------------------
             // Pull / Status fields
@@ -592,12 +636,39 @@ class Newscatcher {
                 displayOptions: {
                     show: {
                         resource: ['monitor'],
-                        operation: ['get', 'listJobs', 'enable', 'disable'],
+                        operation: ['get', 'listJobs', 'enable', 'disable', 'update'],
                     },
                 },
                 placeholder: '7f3a8b2c-1e4d-4a5b-9c8d-6e7f8a9b0c1d',
-                description: 'Monitor ID for which to list jobs, pull details or change status',
+                description: 'Monitor ID for which to list jobs, pull details, change status or update',
                 required: true,
+            },
+            {
+                displayName: 'Schedule',
+                name: 'schedule',
+                type: 'string',
+                default: '',
+                displayOptions: {
+                    show: {
+                        resource: ['monitor'],
+                        operation: ['update'],
+                    },
+                },
+                description: 'New natural-language schedule that replaces the current one, e.g. "every day at 9 AM". Leave empty to keep the current schedule.',
+            },
+            {
+                displayName: 'Timezone',
+                name: 'timezone',
+                type: 'string',
+                default: '',
+                displayOptions: {
+                    show: {
+                        resource: ['monitor'],
+                        operation: ['update'],
+                    },
+                },
+                description: 'IANA timezone for the new schedule, e.g. "America/New_York" (API default is UTC). Ignored if Schedule is empty, and overridden if the schedule text contains a timezone.',
+                placeholder: 'America/New_York',
             },
             // ----------------------------------------------------
             // Project fields
@@ -919,7 +990,7 @@ class Newscatcher {
                 default: 1,
                 displayOptions: {
                     show: {
-                        resource: ['project', 'webhook'],
+                        resource: ['project', 'webhook', 'sourceGroup'],
                         operation: ['list'],
                     },
                 },
@@ -935,7 +1006,7 @@ class Newscatcher {
                 default: 100,
                 displayOptions: {
                     show: {
-                        resource: ['project', 'webhook'],
+                        resource: ['project', 'webhook', 'sourceGroup'],
                         operation: ['list'],
                     },
                 },
@@ -1027,6 +1098,19 @@ class Newscatcher {
                         catch (error) {
                             throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Invalid JSON for Enrichments: ${error.message}`, { itemIndex: i });
                         }
+                    }
+                    // Optional source groups: comma-separated slugs (or an array), max 20
+                    const sourceGroupsRaw = this.getNodeParameter('sourceGroups', i, '');
+                    const sourceGroups = (Array.isArray(sourceGroupsRaw) ? sourceGroupsRaw : String(sourceGroupsRaw || '').split(','))
+                        .map((slug) => String(slug).trim())
+                        .filter((slug) => slug.length > 0);
+                    if (sourceGroups.length > 20) {
+                        throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Source Groups accepts at most 20 slugs per job', {
+                            itemIndex: i,
+                        });
+                    }
+                    if (sourceGroups.length > 0) {
+                        body.source_groups = sourceGroups;
                     }
                     const options = {
                         method: 'POST',
@@ -1271,6 +1355,52 @@ class Newscatcher {
                     const options = {
                         method: 'POST',
                         url: `${baseUrl}/catchAll/monitors/${encodeURIComponent(monitorId)}/disable`,
+                        json: true,
+                    };
+                    responseData = (await doRequest(options, i));
+                }
+                else if (resource === 'monitor' && operation === 'update') {
+                    // ------------------------------------------------
+                    // Update monitor schedule / timezone (only supplied
+                    // fields are sent; timezone is ignored by the API
+                    // when schedule is not set)
+                    // ------------------------------------------------
+                    const monitorId = this.getNodeParameter('monitorId', i);
+                    const schedule = this.getNodeParameter('schedule', i, '');
+                    const timezone = this.getNodeParameter('timezone', i, '');
+                    const body = {};
+                    if (schedule) {
+                        body.schedule = schedule;
+                    }
+                    if (timezone) {
+                        body.timezone = timezone;
+                    }
+                    const options = {
+                        method: 'PATCH',
+                        url: `${baseUrl}/catchAll/monitors/${encodeURIComponent(monitorId)}`,
+                        body,
+                        json: true,
+                    };
+                    responseData = (await doRequest(options, i));
+                }
+                else if (resource === 'sourceGroup' && operation === 'list') {
+                    // ------------------------------------------------
+                    // List source groups (paginated: source_groups
+                    // [{slug, name, description}], total, page, page_size)
+                    // ------------------------------------------------
+                    const page = this.getNodeParameter('page', i);
+                    const pageSize = this.getNodeParameter('pageSize', i);
+                    const queryParams = {};
+                    if (page) {
+                        queryParams.page = page;
+                    }
+                    if (pageSize) {
+                        queryParams.page_size = pageSize;
+                    }
+                    const options = {
+                        method: 'GET',
+                        url: `${baseUrl}/catchAll/source-groups`,
+                        qs: queryParams,
                         json: true,
                     };
                     responseData = (await doRequest(options, i));
