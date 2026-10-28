@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-10-27 — CatchAll API 1.10.3 sync
+
+- **New Source Group resource**: **List** operation calling `GET /catchAll/source-groups`
+  with `page` and `pageSize` (1-500) mapped to `page` / `page_size`. Returns
+  `source_groups[{slug, name, description}]`, `total`, `page`, `page_size`.
+- **Job > Submit**: added an optional **Source Groups** field (comma-separated slugs, max 20)
+  sent as `source_groups` in the `POST /catchAll/submit` body only when set. More than
+  20 slugs fails with a clear node error before the request.
+- **New Monitor > Update operation**: `PATCH /catchAll/monitors/{monitor_id}` with optional
+  **Schedule** (natural language) and **Timezone** (IANA; the API ignores it when no
+  schedule is sent). Each is sent as `schedule` / `timezone` only when set.
+
 ## 2026-09-30 — 0.1.45
 
 - Added `n8n.n8nNodesApiVersion: 1` so the n8n community-node review can approve the update.
